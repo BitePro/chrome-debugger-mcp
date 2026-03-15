@@ -8,60 +8,43 @@
 
 An MCP server for breakpoint-driven Chrome debugging.
 
-`chrome-debugger-mcp` exposes Chrome DevTools Protocol primitives as MCP tools so an AI agent can attach to a real Chrome tab, pause execution, inspect runtime values, evaluate expressions inside the current call frame, and step through code instead of guessing from static source.
-
-This server is built for questions like:
-
-- What is this variable at runtime?
-- Why did this branch execute?
-- What does the real API payload look like in the browser?
-- Which function changed this state?
-- Why does the UI fail only after a specific click or reload?
+`chrome-debugger-mcp` exposes Chrome DevTools Protocol primitives as MCP tools so an AI agent can attach to a real Chrome tab, pause execution, inspect scope values, evaluate expressions inside the current call frame, and step through code with runtime facts instead of guessing from static source.
 
 It is not a general browser automation server. The focus is runtime debugging.
 
-### Features
+### Core Capabilities
 
-- Launch a dedicated Chrome instance with remote debugging enabled
-- List open tabs and require explicit user confirmation before connecting
-- Connect to a specific Chrome page over CDP
-- Set and remove DevTools breakpoints without editing source code
-- Reload the page through CDP so breakpoints reliably bind after navigation
-- Wait for the next pause, or wait for a specific file and line target
-- Read scope variables from the paused frame
-- Evaluate arbitrary JavaScript in the current call frame
-- Step into, step over, step out, and resume execution
-- Poll debugger state when the MCP client has short request timeouts
-- Emit `_ui` payloads and logging messages that clients can surface to the user
+- Attach to a real Chrome tab over CDP after explicit user confirmation
+- Pause at breakpoints or `debugger;` statements and wait for the exact pause you expect
+- Read local, closure, and module scope values from the paused frame
+- Evaluate JavaScript in the current call frame and step execution forward
+- Resume cleanly so the agent can continue with actual runtime values
 
-### Why This Exists
+### Demo
 
-Browser-focused MCP tools are usually good at DOM interaction and network inspection, but weak at answering runtime debugging questions. This project gives an MCP client access to the debugging workflow you would normally use in Chrome DevTools:
+![chrome-debugger-mcp demo](https://raw.githubusercontent.com/BitePro/chrome-debugger-mcp/master/asset/guide.png)
 
-1. Attach to the right tab.
-2. Pause execution at the right moment.
-3. Read actual runtime values.
-4. Step through code if needed.
-5. Resume and clean up.
+*Demo: the agent launches Chrome, waits for a breakpoint, inspects real scope variables, and resumes with runtime facts instead of guessing.*
 
-The server is intentionally opinionated. It encodes guardrails that prevent common agent mistakes such as:
+### MCP Client Configuration
 
-- guessing which tab to attach to
-- concluding behavior without inspecting runtime values
-- ending the turn between `reloadPage()` and `waitForSpecificPause()`
+#### Use the published package
 
-### Requirements
+```json
+{
+  "mcpServers": {
+    "chrome-debugger": {
+      "command": "npx",
+      "args": ["-y", "chrome-debugger-mcp"]
+    }
+  }
+}
+```
 
-- Google Chrome installed locally
-- An MCP client that supports stdio servers and tool calling
-- Access to the application you want to debug
-- Local source access if you plan to insert temporary `debugger;` statements
 
 ### Installation
 
 #### From npm
-
-After this package is published, users can run it directly with `npx`:
 
 ```bash
 npx -y chrome-debugger-mcp
@@ -81,33 +64,30 @@ pnpm build
 node dist/index.js
 ```
 
-### MCP Client Configuration
+### Other Highlights
 
-#### Use the published package
+- Launch a dedicated Chrome instance with remote debugging enabled
+- Set and remove DevTools breakpoints without editing source code
+- Reload the page through CDP so breakpoints reliably bind after navigation
+- Poll debugger state when the MCP client has short request timeouts
+- Emit `_ui` payloads and logging messages that clients can surface to the user
 
-```json
-{
-  "mcpServers": {
-    "chrome-debugger": {
-      "command": "npx",
-      "args": ["-y", "chrome-debugger-mcp"]
-    }
-  }
-}
-```
+### Why It Helps
 
-#### Use a local checkout
+Many browser-focused MCP tools are strong at DOM interaction and network inspection, but weak at runtime debugging. This server gives an MCP client the missing loop you would normally use in Chrome DevTools: attach to the right tab, pause at the right time, inspect real values, step if needed, and resume cleanly.
 
-```json
-{
-  "mcpServers": {
-    "chrome-debugger": {
-      "command": "node",
-      "args": ["/absolute/path/to/chrome-debugger-mcp/dist/index.js"]
-    }
-  }
-}
-```
+It also adds guardrails that prevent common agent mistakes:
+
+- guessing which tab to attach to
+- concluding behavior without inspecting runtime values
+- ending the turn between `reloadPage()` and `waitForSpecificPause()`
+
+### Requirements
+
+- Google Chrome installed locally
+- An MCP client that supports stdio servers and tool calling
+- Access to the application you want to debug
+- Local source access if you plan to insert temporary `debugger;` statements
 
 ### Tooling Model
 
@@ -290,60 +270,43 @@ MIT
 
 一个面向 Chrome 断点调试的 MCP Server。
 
-`chrome-debugger-mcp` 把 Chrome DevTools Protocol 的核心调试能力暴露为 MCP 工具，让 AI agent 可以连接真实的 Chrome 标签页，在运行时暂停执行、读取变量、在当前调用帧中执行表达式、单步跟踪代码，而不是只靠静态源码猜测行为。
-
-这个服务适合处理这类问题：
-
-- 这个变量在运行时到底是什么值？
-- 为什么会走到这个分支？
-- 浏览器里真实拿到的 API 返回结构是什么？
-- 是哪一个函数改掉了这个状态？
-- 为什么这个 UI 只有在某次点击或刷新后才出错？
+`chrome-debugger-mcp` 把 Chrome DevTools Protocol 的核心调试能力暴露为 MCP 工具，让 AI agent 可以连接真实的 Chrome 标签页，在运行时暂停执行、读取作用域变量、在当前调用帧中执行表达式、单步跟踪代码，并基于真实值继续任务，而不是只靠静态源码猜测行为。
 
 它不是通用浏览器自动化工具。它的重点是运行时调试。
 
-### 功能特性
+### 核心能力
 
-- 启动带远程调试端口的独立 Chrome 实例
-- 列出所有标签页，并强制要求用户明确确认目标页
-- 通过 CDP 连接指定 Chrome 页面
-- 无需修改源码即可设置和移除断点
-- 通过 CDP 重载页面，确保跳转后断点可靠绑定
-- 支持等待任意 pause，也支持等待指定文件和行附近的 pause
-- 读取当前暂停帧里的作用域变量
-- 在当前调用帧里执行任意 JavaScript 表达式
-- 支持 `stepInto`、`stepOver`、`stepOut` 和 `resume`
-- 当 MCP 客户端请求超时较短时，可轮询调试器状态
-- 输出 `_ui` 结果和 logging 消息，方便客户端展示给用户
+- 在用户明确确认后，通过 CDP 连接真实的 Chrome 标签页
+- 在断点或 `debugger;` 命中时暂停，并等待指定文件和行附近的 pause
+- 读取当前暂停帧中的 local、closure、module 作用域变量
+- 在当前调用帧里执行 JavaScript，并继续单步跟踪
+- 检查完成后恢复执行，让 agent 基于真实运行时值继续工作
 
-### 为什么做这个项目
+### 功能演示
 
-很多浏览器方向的 MCP 工具更擅长 DOM 操作和网络请求观察，但不擅长回答运行时调试问题。这个项目把 Chrome DevTools 中常用的调试流程带进了 MCP：
+![chrome-debugger-mcp 演示图](https://raw.githubusercontent.com/BitePro/chrome-debugger-mcp/master/asset/guide.png)
 
-1. 连接正确的标签页。
-2. 在正确的时机暂停执行。
-3. 读取真实运行时值。
-4. 必要时单步跟踪。
-5. 恢复执行并清理现场。
+*演示流程：agent 拉起 Chrome，等待断点命中，读取真实作用域变量，再基于运行时事实继续执行，而不是靠猜测推进。*
 
-这个服务是有明确约束的。它内置了一些 guardrails，专门避免 agent 出现这些常见错误：
+### MCP 客户端配置
 
-- 猜测应该连接哪个标签页
-- 没看运行时值就直接下结论
-- 在 `reloadPage()` 和 `waitForSpecificPause()` 之间错误地结束当前轮次
+#### 使用已发布包
 
-### 运行要求
+```json
+{
+  "mcpServers": {
+    "chrome-debugger": {
+      "command": "npx",
+      "args": ["-y", "chrome-debugger-mcp"]
+    }
+  }
+}
+```
 
-- 本机安装了 Google Chrome
-- 使用支持 stdio MCP server 和工具调用的 MCP 客户端
-- 可以访问你要调试的应用
-- 如果要插入临时 `debugger;`，需要能访问本地源码
 
 ### 安装方式
 
 #### 从 npm 使用
-
-这个包发布后，用户可以直接用 `npx` 运行：
 
 ```bash
 npx -y chrome-debugger-mcp
@@ -363,33 +326,30 @@ pnpm build
 node dist/index.js
 ```
 
-### MCP 客户端配置
+### 其他特点
 
-#### 使用已发布包
+- 启动带远程调试端口的独立 Chrome 实例
+- 无需修改源码即可设置和移除断点
+- 通过 CDP 重载页面，确保跳转后断点可靠绑定
+- 当 MCP 客户端请求超时较短时，可轮询调试器状态
+- 输出 `_ui` 结果和 logging 消息，方便客户端展示给用户
 
-```json
-{
-  "mcpServers": {
-    "chrome-debugger": {
-      "command": "npx",
-      "args": ["-y", "chrome-debugger-mcp"]
-    }
-  }
-}
-```
+### 为什么适合这个场景
 
-#### 使用本地源码
+很多浏览器方向的 MCP 工具更擅长 DOM 操作和网络请求观察，但不擅长回答运行时调试问题。这个服务补上的是 Chrome DevTools 里最关键的那条链路：连接正确标签页、在正确时机暂停、读取真实值、必要时单步跟踪、最后恢复执行。
 
-```json
-{
-  "mcpServers": {
-    "chrome-debugger": {
-      "command": "node",
-      "args": ["/absolute/path/to/chrome-debugger-mcp/dist/index.js"]
-    }
-  }
-}
-```
+它也内置了几条 guardrails，避免 agent 出现这些常见错误：
+
+- 猜测应该连接哪个标签页
+- 没看运行时值就直接下结论
+- 在 `reloadPage()` 和 `waitForSpecificPause()` 之间错误地结束当前轮次
+
+### 运行要求
+
+- 本机安装了 Google Chrome
+- 使用支持 stdio MCP server 和工具调用的 MCP 客户端
+- 可以访问你要调试的应用
+- 如果要插入临时 `debugger;`，需要能访问本地源码
 
 ### 工具模型
 
