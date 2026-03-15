@@ -1,6 +1,6 @@
 {
     "name": "chrome-debugger-mcp",
-    "version": "1.0.0",
+    "version": "1.0.1",
     "description": "MCP server for Chrome breakpoint debugging – set breakpoints, inspect scope variables, step through code",
     "type": "module",
     "main": "dist/index.js",
